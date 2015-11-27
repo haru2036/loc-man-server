@@ -129,12 +129,19 @@ instance YesodAuth App where
 
     authenticate creds = runDB $ do
         x <- getBy $ UniqueUser $ credsIdent creds
-        return $ case x of
-            Just (Entity uid _) -> Authenticated uid
-            Nothing -> UserError InvalidLogin
+        case x of
+            Just (Entity uid _) -> return $ Authenticated uid
+            Nothing -> do
+                userKey <- createUser
+                return $ Authenticated userKey
+              where
+                createUser = do
+                  newU <- insert $ User (credsIdent creds) Nothing
+                  return $ newU
+
 
     -- You can add other plugins like BrowserID, email or OAuth here
-    authPlugins master = [authGoogleEmail 
+    authPlugins master = [authBrowserId def, authGoogleEmail 
                         (appGoogleAuthKey $ appSettings master)
                         (appGoogleAuthSecret $ appSettings master)]
 
