@@ -1,10 +1,10 @@
 module Foundation where
-
 import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
 import Yesod.Auth.BrowserId (authBrowserId)
+import Yesod.Auth.GoogleEmail2(authGoogleEmail)
 import Yesod.Auth.Message   (AuthMessage (InvalidLogin))
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
@@ -37,6 +37,7 @@ instance HasHttpManager App where
 -- type Handler = HandlerT App IO
 -- type Widget = WidgetT App IO ()
 mkYesodData "App" $(parseRoutesFile "config/routes")
+
 
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
@@ -133,7 +134,9 @@ instance YesodAuth App where
             Nothing -> UserError InvalidLogin
 
     -- You can add other plugins like BrowserID, email or OAuth here
-    authPlugins _ = [authBrowserId def]
+    authPlugins master = [authGoogleEmail 
+                        (appGoogleAuthKey $ appSettings master)
+                        (appGoogleAuthSecret $ appSettings master)]
 
     authHttpManager = getHttpManager
 

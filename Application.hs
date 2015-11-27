@@ -109,7 +109,7 @@ warpSettings foundation =
             (toLogStr $ "Exception from Warp: " ++ show e))
       defaultSettings
 
--- | For yesod devel, return the Warp settings and WAI Application.
+ -- | For yesod devel, return the Warp settings and WAI Application.
 getApplicationDev :: IO (Settings, Application)
 getApplicationDev = do
     settings <- getAppSettings
