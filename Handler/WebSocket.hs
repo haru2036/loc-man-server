@@ -12,6 +12,7 @@ import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
 import Data.Time
 import Conduit
+import LocMan.Types
 
 
 timeSource :: MonadIO m => Source m TL.Text
@@ -44,8 +45,18 @@ receiveWebSockets :: Handler ()
 receiveWebSockets = webSockets socketApp 
 
 socketApp :: WebSocketsT Handler ()
-socketApp = race_
+socketApp = do
+  race_
         (sourceWS $$ mapC TL.toUpper =$ sinkWSText)
         (timeSource $$ sinkWSText)
 
-
+-- | get session or create session if not exists
+checkSession :: LocationSessionId -> Handler UserLocationSession
+checkSession sid = do
+  app <- getYesod
+  sessions <- atomically $ readTChan $ appTChan app
+  case lookup sid sessions of
+    Just session -> return session
+    Nothing -> do
+      nChan <- atomically newBroadcastTChan
+      return $ UserLocationSession [] nChan 

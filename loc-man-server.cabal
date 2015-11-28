@@ -23,6 +23,7 @@ library
                      Handler.Common
                      Handler.Home
                      Handler.WebSocket
+                     LocMan.Types
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
@@ -86,6 +87,7 @@ library
                  , time
                  , yesod-websockets
                  , stm-lifted
+                 , stm
                  , conduit-combinators
 
 executable         loc-man-server
