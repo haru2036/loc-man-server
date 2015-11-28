@@ -8,6 +8,7 @@ import Yesod.Auth.GoogleEmail2(authGoogleEmail)
 import Yesod.Auth.Message   (AuthMessage (InvalidLogin))
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
+import LocMan.STM.Types
 import qualified Yesod.Core.Unsafe as Unsafe
 
 -- | The foundation datatype for your application. This can be a good place to
@@ -20,7 +21,10 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
+    , appTChan       :: TChan UserLocationSessions
     }
+-- appTChan is shared state for WebSocket.
+-- It has all information for current user location sessions.
 
 instance HasHttpManager App where
     getHttpManager = appHttpManager

@@ -40,10 +40,12 @@ getWebSocketR = do
                 };
             |]
 
+receiveWebSockets :: Handler ()
 receiveWebSockets = webSockets socketApp 
 
 socketApp :: WebSocketsT Handler ()
 socketApp = race_
         (sourceWS $$ mapC TL.toUpper =$ sinkWSText)
         (timeSource $$ sinkWSText)
+
 
