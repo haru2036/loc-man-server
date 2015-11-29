@@ -5,4 +5,5 @@
 /robots.txt RobotsR GET
 
 / HomeR GET POST
-/session/ws     WebSocketR GET 
+/session/client WebSocketR GET 
+/session/ws     WebSocketSessionR GET 

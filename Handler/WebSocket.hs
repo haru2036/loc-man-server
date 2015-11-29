@@ -21,12 +21,15 @@ timeSource = forever $ do
     yield $ TL.pack $ show now
     liftIO $ threadDelay 5000000
 
+getWebSocketSessionR :: Handler ()
+getWebSocketSessionR = receiveWebSockets
+
 getWebSocketR :: Handler Html
 getWebSocketR = do
     defaultLayout $
         toWidget
             [julius|
-                var conn = new WebSocket("ws://mbp:3000/");
+                var conn = new WebSocket("ws://mbp:3000/session/ws");
                 conn.onopen = function() {
                     document.write("<p>open!</p>");
                     document.write("<button id=button>Send another message</button>")
