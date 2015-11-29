@@ -81,8 +81,9 @@ instance Yesod App where
     isAuthorized (AuthR _) _ = return Authorized
     isAuthorized FaviconR _ = return Authorized
     isAuthorized RobotsR _ = return Authorized
+    isAuthorized HomeR _ = return Authorized
     -- Default to Authorized for now.
-    isAuthorized _ _ = return Authorized
+    isAuthorized _ _ = isAuthenticated 
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
@@ -112,12 +113,31 @@ instance Yesod App where
 
     makeLogger = return . appLogger
 
+isAuthenticated :: HandlerT App IO AuthResult
+isAuthenticated = do
+  mu <- maybeAuthId
+  return $ case mu of
+    Just _ -> Authorized
+    Nothing -> AuthenticationRequired
+
+
+isAdmin :: HandlerT App IO AuthResult
+isAdmin = do
+  mu <- maybeAuthId
+  app <- getYesod
+  let admin = appAdminName $ appSettings app
+  return $ case mu of
+    Nothing -> AuthenticationRequired
+    Just admin -> Authorized
+    Just _ -> Unauthorized "You must be an admin"
+
 -- How to run database actions.
 instance YesodPersist App where
     type YesodPersistBackend App = SqlBackend
     runDB action = do
         master <- getYesod
         runSqlPool action $ appConnPool master
+
 instance YesodPersistRunner App where
     getDBRunner = defaultGetDBRunner appConnPool
 
