@@ -89,6 +89,7 @@ library
                  , stm-lifted
                  , stm
                  , conduit-combinators
+                 , lens
 
 executable         loc-man-server
     if flag(library-only)
