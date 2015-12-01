@@ -60,27 +60,26 @@ socketApp = do
         (timeSource $$ sinkWSText)
 
 -- | get or create session if not exists
-retrieveSession :: Text -> SharedStates -> STM UserLocationSession
+retrieveSession :: Text -> SharedStates -> STM (TVar UserLocationSession)
 retrieveSession sid shared = do
   case M.lookup sid shared of
-    Just session -> do
-      return session
+    Just sessionTVar -> return sessionTVar
     Nothing -> do
       nChan <- newBroadcastTChan
-      return $ UserLocationSession [] nChan 
+      newTVar $ UserLocationSession [] nChan 
 
-addCurrentUserToSharedStates :: Text -> User -> UserLocationSession -> TVar SharedStates -> STM () 
-addCurrentUserToSharedStates sid currentUser session sessionListTVar = do
-  let users = _sessionUsers session
-  let newUsers = currentUser : users 
-  let newSession = session & sessionUsers .~ newUsers 
-  sharedStates <- readTVar sessionListTVar
-  let newState = M.insert sid newSession sharedStates
-  writeTVar sessionListTVar newState
-
+addCurrentUserSession :: Text -> User -> UserLocationSession -> UserLocationSession
+addCurrentUserSession sid currentUser session = session & sessionUsers .~ (currentUser : _sessionUsers session)
+ 
 joinSession :: User -> Text -> App -> Handler UserLocationSession
 joinSession user sid app = atomically $ do
      sharedStates <- readTVar $ appSharedStates app
-     userSession <- retrieveSession sid sharedStates
-     addCurrentUserToSharedStates sid user userSession $ appSharedStates app
+     userSessionTVar <- retrieveSession sid $ sharedStates
+     userSession <- readTVar userSessionTVar
+     let newSession = addCurrentUserSession sid user userSession 
+     writeTVar userSessionTVar newSession
+     let newState = M.insert sid userSessionTVar sharedStates 
+     writeTVar (appSharedStates app) newState
      return userSession
+
+

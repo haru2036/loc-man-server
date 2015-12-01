@@ -15,7 +15,8 @@ import Control.Lens
 
 -- o(app) - o (TVar SharedStates) - Map LocationSessionId 
 type LocationSessionId = Text
-type SharedStates = Map LocationSessionId UserLocationSession
+-- todo: rename to AppStates
+type SharedStates = Map LocationSessionId (TVar UserLocationSession)
 data UserLocationSession = UserLocationSession 
                            { _sessionUsers :: [User]
                            , _sessionMasterChannel :: TChan UserLocationRecord
