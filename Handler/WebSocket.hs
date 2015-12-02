@@ -19,6 +19,7 @@ import Conduit
 import LocMan.Types
 import Control.Concurrent.STM.TVar
 import Control.Lens
+import Data.Maybe(fromJust)
 
 
 timeSource :: MonadIO m => Source m TL.Text
@@ -27,7 +28,7 @@ timeSource = forever $ do
     yield $ TL.pack $ show now
     liftIO $ threadDelay 5000000
 
-getWebSocketSessionR :: Handler ()
+getWebSocketSessionR ::Text -> Handler ()
 getWebSocketSessionR = receiveWebSockets
 
 getWebSocketR :: Handler Html
@@ -50,11 +51,16 @@ getWebSocketR = do
                 };
             |]
 
-receiveWebSockets :: Handler ()
-receiveWebSockets = webSockets socketApp 
+receiveWebSockets :: LocationSessionId -> Handler ()
+receiveWebSockets id = do
+  maybeuser <- maybeAuth
+  app <- getYesod
+  sess <- atomically $ joinSession (entityVal $ fromJust maybeuser) app id
+  webSockets $ runSocket sess
 
-socketApp :: WebSocketsT Handler ()
-socketApp = do
+
+runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
+runSocket x = do
   race_
         (sourceWS $$ mapC TL.toUpper =$ sinkWSText)
         (timeSource $$ sinkWSText)
@@ -68,18 +74,18 @@ retrieveSession sid shared = do
       nChan <- newBroadcastTChan
       newTVar $ UserLocationSession [] nChan 
 
-addCurrentUserSession :: Text -> User -> UserLocationSession -> UserLocationSession
-addCurrentUserSession sid currentUser session = session & sessionUsers .~ (currentUser : _sessionUsers session)
+addCurrentUserSession :: User -> UserLocationSession -> UserLocationSession
+addCurrentUserSession currentUser session = session & sessionUsers .~ (currentUser : _sessionUsers session)
  
-joinSession :: User -> Text -> App -> Handler UserLocationSession
-joinSession user sid app = atomically $ do
+joinSession :: User -> App -> LocationSessionId -> STM (TVar UserLocationSession)
+joinSession user app sid = do
      sharedStates <- readTVar $ appSharedStates app
      userSessionTVar <- retrieveSession sid $ sharedStates
      userSession <- readTVar userSessionTVar
-     let newSession = addCurrentUserSession sid user userSession 
+     let newSession = addCurrentUserSession user userSession 
      writeTVar userSessionTVar newSession
      let newState = M.insert sid userSessionTVar sharedStates 
      writeTVar (appSharedStates app) newState
-     return userSession
+     return userSessionTVar
 
 
