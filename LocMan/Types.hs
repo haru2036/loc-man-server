@@ -13,10 +13,8 @@ import Control.Lens
 -- | This module has non-persistent data types.
 -- If the application stopped, data that has these data types will be deleted.
 
--- o(app) - o (TVar SharedStates) - Map LocationSessionId 
 type LocationSessionId = Text
--- todo: rename to AppStates
-type SharedStates = Map LocationSessionId (TVar UserLocationSession)
+type AppStates = Map LocationSessionId (TVar UserLocationSession)
 data UserLocationSession = UserLocationSession 
                            { _sessionUsers :: [User]
                            , _sessionMasterChannel :: TChan UserLocationRecord

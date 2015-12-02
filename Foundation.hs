@@ -21,7 +21,7 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
-    , appSharedStates:: TVar SharedStates
+    , appSharedStates:: TVar AppStates
     }
 -- appTChan is shared state for WebSocket.
 -- It has all information for current user location sessions.

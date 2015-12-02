@@ -58,15 +58,21 @@ receiveWebSockets id = do
   sess <- atomically $ joinSession (entityVal $ fromJust maybeuser) app id
   webSockets $ runSocket sess
 
-
 runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
 runSocket x = do
   race_
         (sourceWS $$ mapC TL.toUpper =$ sinkWSText)
         (timeSource $$ sinkWSText)
+ 
+locationSource :: MonadIO m => TChan UserLocationRecord -> Source m UserLocationRecord
+locationSource chan = do
+  --todo: should use forever?
+   record <- atomically $ readTChan =<< dupTChan chan 
+   yield record
+   locationSource chan
 
 -- | get or create session if not exists
-retrieveSession :: Text -> SharedStates -> STM (TVar UserLocationSession)
+retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)
 retrieveSession sid shared = do
   case M.lookup sid shared of
     Just sessionTVar -> return sessionTVar
