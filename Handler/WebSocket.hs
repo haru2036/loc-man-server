@@ -20,6 +20,8 @@ import LocMan.Types
 import Control.Concurrent.STM.TVar
 import Control.Lens
 import Data.Maybe(fromJust)
+import Data.Void(Void)
+import Debug.Trace
 
 
 timeSource :: MonadIO m => Source m TL.Text
@@ -36,7 +38,7 @@ getWebSocketR = do
     defaultLayout $
         toWidget
             [julius|
-                var conn = new WebSocket("ws://mbp:3000/session/ws");
+                var conn = new WebSocket("ws://mbp:3000/session/ws/1");
                 conn.onopen = function() {
                     document.write("<p>open!</p>");
                     document.write("<button id=button>Send another message</button>")
@@ -60,23 +62,37 @@ receiveWebSockets id = do
 
 runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
 runSocket x = do
+  -- x may need write back the value
+  session <- atomically $ readTVar x
+  return $ trace "running websocket handler..."
   race_
-        (sourceWS $$ mapC TL.toUpper =$ sinkWSText)
-        (timeSource $$ sinkWSText)
+        (sourceWS $$ mapC TL.toUpper =$= traceConduit =$ (locationSink $ session^.sessionMasterChannel))
+        ((locationSource $ session^.sessionMasterChannel) $$ sinkWSText)
  
 locationSource :: MonadIO m => TChan UserLocationRecord -> Source m UserLocationRecord
 locationSource chan = do
-  --todo: should use forever?
-   record <- atomically $ readTChan =<< dupTChan chan 
-   yield record
-   locationSource chan
+  forever $ do
+    record <- atomically $ readTChan =<< dupTChan chan 
+    yield record
+
+locationSink :: MonadIO m => TChan UserLocationRecord -> Sink UserLocationRecord m ()
+locationSink chan = do 
+  awaitForever $ do
+    trace "sending message..."
+    atomically . writeTChan chan
+traceConduit :: (MonadIO m, Show a) => Conduit a m a
+traceConduit = do
+  awaitForever $ \x -> do
+  yield $ trace ("passed value is :" ++ show x) x
+
 
 -- | get or create session if not exists
 retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)
 retrieveSession sid shared = do
   case M.lookup sid shared of
-    Just sessionTVar -> return sessionTVar
+    Just sessionTVar -> trace "session found ! joining to it..." $ return sessionTVar
     Nothing -> do
+      return $ trace "session not found, creating new session..." ()
       nChan <- newBroadcastTChan
       newTVar $ UserLocationSession [] nChan 
 
@@ -92,6 +108,7 @@ joinSession user app sid = do
      writeTVar userSessionTVar newSession
      let newState = M.insert sid userSessionTVar sharedStates 
      writeTVar (appSharedStates app) newState
+     return $ trace ("joined to session ")
      return userSessionTVar
 
 
