@@ -90,6 +90,7 @@ library
                  , stm
                  , conduit-combinators
                  , lens
+                 , deepseq
 
 executable         loc-man-server
     if flag(library-only)
