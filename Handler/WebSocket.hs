@@ -3,6 +3,7 @@
 module Handler.WebSocket
 ( getWebSocketSessionR
 , getWebSocketR
+, joinSession
 )where
 
 import Import
@@ -17,12 +18,13 @@ import qualified Data.Map as M
 import Data.Map.Strict
 import Conduit
 import LocMan.Types
-import Control.Concurrent.STM.TVar
 import Control.Lens
 import Data.Maybe(fromJust)
 import Data.Void(Void)
 import Debug.Trace
 import Control.DeepSeq
+import Control.Concurrent.STM.TVar
+import Data.Conduit.TMChan
 
 
 timeSource :: MonadIO m => Source m TL.Text
@@ -31,7 +33,7 @@ timeSource = forever $ do
     yield $ TL.pack $ show now
     liftIO $ threadDelay 5000000
 
-getWebSocketSessionR ::Text -> Handler ()
+getWebSocketSessionR :: Text -> Handler ()
 getWebSocketSessionR = receiveWebSockets
 
 getWebSocketR :: Handler Html
@@ -64,27 +66,16 @@ receiveWebSockets id = do
 runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
 runSocket x = do
   session <- atomically $ readTVar x
+  let masterChannel = session^.sessionMasterChannel
+  dupChan <- atomically $ dupTMChan masterChannel
   race_
-        (sourceWS $$ mapC TL.toUpper =$= traceConduit =$ (locationSink $ session^.sessionMasterChannel))
-        ((locationSource $ session^.sessionMasterChannel) $$ sinkWSText)
- 
-locationSource :: MonadIO m => TChan UserLocationRecord -> Source m UserLocationRecord
-locationSource chan = do
-  forever $ do
-    record <- atomically $ readTChan =<< dupTChan chan 
-    yield record
-
-locationSink :: MonadIO m => TChan UserLocationRecord -> Sink UserLocationRecord m ()
-locationSink chan = do 
-  awaitForever $ do
-    atomically . writeTChan chan
-
+        (sourceWS $$ mapC TL.toUpper =$= traceConduit =$ sinkTMChan masterChannel False)
+        (sourceTMChan dupChan $= traceConduit $$ sinkWSText)
 traceConduit :: (MonadIO m, Show a) => Conduit a m a
 traceConduit = do
   awaitForever $ \x -> do
     !a <- return $ trace ("passed value is :" ++ show x) x
     yield a
-
 
 -- | get or create session if not exists
 retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)
@@ -92,7 +83,7 @@ retrieveSession sid shared = do
   case M.lookup sid shared of
     Just sessionTVar -> return sessionTVar
     Nothing -> do
-      nChan <- newBroadcastTChan
+      nChan <- newBroadcastTMChan
       newTVar $ UserLocationSession [] nChan 
 
 addCurrentUserSession :: User -> UserLocationSession -> UserLocationSession
@@ -108,5 +99,4 @@ joinSession user app sid = do
      let newState = M.insert sid userSessionTVar sharedStates 
      writeTVar (appSharedStates app) newState
      return userSessionTVar
-
 

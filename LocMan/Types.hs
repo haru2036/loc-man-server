@@ -7,7 +7,7 @@ import Model
 import Data.Map.Strict
 import Data.Text
 import qualified Data.Text.Lazy as TL
-import Control.Concurrent.STM.TChan
+import Control.Concurrent.STM.TMChan
 import Control.Concurrent.STM.TVar
 import Control.Lens
 
@@ -18,7 +18,7 @@ type LocationSessionId = Text
 type AppStates = Map LocationSessionId (TVar UserLocationSession)
 data UserLocationSession = UserLocationSession 
                            { _sessionUsers :: [User]
-                           , _sessionMasterChannel :: TChan UserLocationRecord
+                           , _sessionMasterChannel :: TMChan UserLocationRecord
                            }
 -- data UserLocationRecord = UserLocationRecord
 type UserLocationRecord = TL.Text

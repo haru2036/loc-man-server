@@ -91,6 +91,8 @@ library
                  , conduit-combinators
                  , lens
                  , deepseq
+                 , stm-conduit
+                 , stm-chans
 
 executable         loc-man-server
     if flag(library-only)
@@ -139,3 +141,4 @@ test-suite test
                  , hspec >= 2.0.0
                  , classy-prelude
                  , classy-prelude-yesod
+                 , stm
