@@ -71,6 +71,7 @@ runSocket x = do
   race_
         (sourceWS $$ mapC TL.toUpper =$= traceConduit =$ sinkTMChan masterChannel False)
         (sourceTMChan dupChan $= traceConduit $$ sinkWSText)
+
 traceConduit :: (MonadIO m, Show a) => Conduit a m a
 traceConduit = do
   awaitForever $ \x -> do

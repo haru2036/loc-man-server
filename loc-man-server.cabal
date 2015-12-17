@@ -93,6 +93,7 @@ library
                  , deepseq
                  , stm-conduit
                  , stm-chans
+                 , aeson
 
 executable         loc-man-server
     if flag(library-only)
