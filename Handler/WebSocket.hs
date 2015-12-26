@@ -7,7 +7,7 @@ module Handler.WebSocket
 )where
 
 import Import
-import Yesod.Core
+import Yesod.Core()
 import Yesod.WebSockets
 import qualified Data.Text.Lazy as TL
 import Control.Monad (forever)
@@ -23,7 +23,7 @@ import Data.Maybe(fromJust)
 import Data.Void(Void)
 import Debug.Trace
 import Control.DeepSeq
-import Control.Concurrent.STM.TVar
+import Control.Concurrent.STM.TVar()
 import Data.Conduit.TMChan
 
 
@@ -57,20 +57,20 @@ getWebSocketR = do
             |]
 
 receiveWebSockets :: LocationSessionId -> Handler ()
-receiveWebSockets id = do
+receiveWebSockets ident = do
   maybeuser <- maybeAuth
   app <- getYesod
-  sess <- atomically $ joinSession (entityVal $ fromJust maybeuser) app id
+  sess <- atomically $ joinSession (entityVal $ fromJust maybeuser) app ident
   webSockets $ runSocket sess
 
 runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
 runSocket x = do
   session <- atomically $ readTVar x
   let masterChannel = session^.sessionMasterChannel
-  dupChan <- atomically $ dupTMChan masterChannel
+  dupedChan <- atomically $ dupTMChan masterChannel
   race_
         (sourceWS $$ mapC TL.toUpper =$= traceConduit =$ sinkTMChan masterChannel False)
-        (sourceTMChan dupChan $= traceConduit $$ sinkWSText)
+        (sourceTMChan dupedChan $= traceConduit $$ sinkWSText)
 
 traceConduit :: (MonadIO m, Show a) => Conduit a m a
 traceConduit = do
