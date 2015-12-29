@@ -3,8 +3,8 @@
 module LocMan.Types where
 
 import Model
-import Data.Map.Strict
-import Data.Text
+import Data.Map.Strict(Map)
+import Data.Text(Text)
 import qualified Data.Text.Lazy as TL
 import Control.Concurrent.STM.TMChan
 import Control.Concurrent.STM.TVar
@@ -33,18 +33,20 @@ data JUser = JUser
             { _uid :: Text 
             , _name :: Text
             }
-$(deriveJSON defaultOptions ''JUser)
+
+$(deriveJSON defaultOptions{ fieldLabelModifier = drop 1} ''JUser)
 
 data SessionEvent = Joined JUser | Exited JUser | UpdateLocation GeoLocation
 
-$(deriveJSON defaultOptions ''SessionEvent)
+$(deriveJSON defaultOptions { fieldLabelModifier =drop 1} ''SessionEvent)
 
 
 data UserLocationSession = UserLocationSession 
                            { _sessionUsers :: [User]
-                           , _sessionMasterChannel :: TMChan TL.Text
+                           , _sessionMasterChannel :: TMChan SessionEvent
                            }
 
 $(makeLenses ''UserLocationSession)
 
 type AppStates = Map LocationSessionId (TVar UserLocationSession)
+

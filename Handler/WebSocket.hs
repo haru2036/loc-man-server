@@ -18,6 +18,7 @@ import qualified Data.Map as M
 import Data.Map.Strict
 import Conduit
 import LocMan.Types
+import LocMan.Conduit
 import Control.Lens
 import Data.Maybe(fromJust)
 import Data.Void(Void)
@@ -49,7 +50,7 @@ getWebSocketR = do
                         var msg = prompt("Enter a message for the server");
                         conn.send(msg);
                     });
-                    conn.send("hello world");
+                    conn.send('{"tag":"Joined","contents":{"uid":"hoge","name":"hoge"}}');
                 };
                 conn.onmessage = function(e) {
                     document.write("<p>" + e.data + "</p>");
@@ -69,14 +70,8 @@ runSocket x = do
   let masterChannel = session^.sessionMasterChannel
   dupedChan <- atomically $ dupTMChan masterChannel
   race_
-        (sourceWS $$ mapC TL.toUpper =$= traceConduit =$ sinkTMChan masterChannel False)
-        (sourceTMChan dupedChan $= traceConduit $$ sinkWSText)
-
-traceConduit :: (MonadIO m, Show a) => Conduit a m a
-traceConduit = do
-  awaitForever $ \x -> do
-    !a <- return $ trace ("passed value is :" ++ show x) x
-    yield a
+        (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$ sinkTMChan masterChannel False)
+        (sourceTMChan dupedChan $= encodeConduit$$ sinkWSText)
 
 -- | get or create session if not exists
 retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)
