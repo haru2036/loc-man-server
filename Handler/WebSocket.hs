@@ -10,20 +10,12 @@ import Import
 import Yesod.Core()
 import Yesod.WebSockets
 import qualified Data.Text.Lazy as TL
-import Control.Monad (forever)
-import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
-import Data.Time
 import qualified Data.Map as M
-import Data.Map.Strict
-import Conduit
 import LocMan.Types
 import LocMan.Conduit
 import Control.Lens
 import Data.Maybe(fromJust)
-import Data.Void(Void)
-import Debug.Trace
-import Control.DeepSeq
 import Control.Concurrent.STM.TVar()
 import Data.Conduit.TMChan
 
@@ -61,17 +53,19 @@ receiveWebSockets :: LocationSessionId -> Handler ()
 receiveWebSockets ident = do
   maybeuser <- maybeAuth
   app <- getYesod
-  sess <- atomically $ joinSession (entityVal $ fromJust maybeuser) app ident
-  webSockets $ runSocket sess
+  let usr = entityVal $ fromJust maybeuser
+  sess <- atomically $ joinSession usr app ident
+  webSockets $ runSocket usr sess
 
-runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
-runSocket x = do
-  session <- atomically $ readTVar x
+runSocket :: User -> TVar UserLocationSession -> WebSocketsT Handler ()
+runSocket currentUsr sess = do
+  session <- atomically $ readTVar sess
   let masterChannel = session^.sessionMasterChannel
+  atomically $ writeTMChan masterChannel $ Joined $ userToJUser currentUsr
   dupedChan <- atomically $ dupTMChan masterChannel
-  race_
+  finally (race_
         (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$ sinkTMChan masterChannel False)
-        (sourceTMChan dupedChan $= encodeConduit$$ sinkWSText)
+        (sourceTMChan dupedChan $= encodeConduit$$ sinkWSText)) $ atomically $ writeTMChan masterChannel $ Exited$ userToJUser currentUsr
 
 -- | get or create session if not exists
 retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)

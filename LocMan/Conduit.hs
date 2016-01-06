@@ -3,7 +3,7 @@ module LocMan.Conduit where
 
 import Conduit
 import Data.Aeson
-import Data.Aeson.Types
+import Data.Aeson.Types()
 import Data.ByteString.Lazy
 import Data.Text.Lazy
 import Debug.Trace
