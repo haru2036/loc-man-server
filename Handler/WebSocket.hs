@@ -18,6 +18,7 @@ import Control.Lens
 import Data.Maybe(fromJust)
 import Control.Concurrent.STM.TVar()
 import Data.Conduit.TMChan
+import qualified Data.List as L (delete)
 
 
 timeSource :: MonadIO m => Source m TL.Text
@@ -65,7 +66,8 @@ runSocket currentUsr sess = do
   dupedChan <- atomically $ dupTMChan masterChannel
   finally (race_
         (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$ sinkTMChan masterChannel False)
-        (sourceTMChan dupedChan $= encodeConduit$$ sinkWSText)) $ atomically $ writeTMChan masterChannel $ Exited$ userToJUser currentUsr
+        (sourceTMChan dupedChan $= encodeConduit $$ sinkWSText)) $ atomically $ leaveSession currentUsr sess
+
 
 -- | get or create session if not exists
 retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)
@@ -79,6 +81,9 @@ retrieveSession sid shared = do
 addCurrentUserSession :: User -> UserLocationSession -> UserLocationSession
 addCurrentUserSession currentUser session = session & sessionUsers .~ (currentUser : _sessionUsers session)
  
+deleteUserFromSession :: User -> UserLocationSession -> UserLocationSession
+deleteUserFromSession currentUser session = session & sessionUsers .~ (L.delete currentUser $ _sessionUsers session)
+
 joinSession :: User -> App -> LocationSessionId -> STM (TVar UserLocationSession)
 joinSession user app sid = do
      sharedStates <- readTVar $ appSharedStates app
@@ -89,4 +94,12 @@ joinSession user app sid = do
      let newState = M.insert sid userSessionTVar sharedStates 
      writeTVar (appSharedStates app) newState
      return userSessionTVar
+
+
+leaveSession :: User -> TVar UserLocationSession -> STM ()
+leaveSession currentUsr session = do
+  currSess <- readTVar session
+  writeTMChan (currSess^.sessionMasterChannel) (Exited $ userToJUser currentUsr)
+  let newSess = deleteUserFromSession currentUsr currSess
+  writeTVar session newSess
 
