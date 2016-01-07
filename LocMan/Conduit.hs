@@ -8,6 +8,7 @@ import Data.ByteString.Lazy
 import Data.Text.Lazy
 import Debug.Trace
 import ClassyPrelude hiding (ByteString, Text)
+import LocMan.Types
 
 traceConduit :: (MonadIO m, Show a) => Conduit a m a
 traceConduit = do
@@ -28,4 +29,7 @@ errorReportConduit = awaitForever $ \x -> case x of
 
 toByteStringConduit :: (MonadIO m) => Conduit Text m ByteString 
 toByteStringConduit = awaitForever $ yield . encodeUtf8
+
+addAuthorConduit :: (MonadIO m) => JUser-> Conduit SessionEvent m UserSessionEvent
+addAuthorConduit u = awaitForever $ yield . UserSessionEvent u
 

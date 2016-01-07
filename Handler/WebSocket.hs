@@ -35,7 +35,7 @@ getWebSocketR = do
     defaultLayout $
         toWidget
             [julius|
-                var conn = new WebSocket("ws://mbp:3000/session/ws/1");
+                var conn = new WebSocket("ws://mbp:3000/api/session/ws/1");
                 conn.onopen = function() {
                     document.write("<p>open!</p>");
                     document.write("<button id=button>Send another message</button>")
@@ -43,7 +43,7 @@ getWebSocketR = do
                         var msg = prompt("Enter a message for the server");
                         conn.send(msg);
                     });
-                    conn.send('{"tag":"Joined","contents":{"uid":"hoge","name":"hoge"}}');
+                    conn.send('{"tag":"UpdateLocation","contents":{"accuracy":100,"latitude":100,"altitude":135,"longitude":100}}');
                 };
                 conn.onmessage = function(e) {
                     document.write("<p>" + e.data + "</p>");
@@ -61,11 +61,13 @@ receiveWebSockets ident = do
 runSocket :: User -> TVar UserLocationSession -> WebSocketsT Handler ()
 runSocket currentUsr sess = do
   session <- atomically $ readTVar sess
+  let jUser = userToJUser currentUsr
   let masterChannel = session^.sessionMasterChannel
-  atomically $ writeTMChan masterChannel $ Joined $ userToJUser currentUsr
-  dupedChan <- atomically $ dupTMChan masterChannel
+  dupedChan <- atomically $ do
+    writeTMChan masterChannel $ flip UserSessionEvent Joined $ jUser
+    dupTMChan masterChannel
   finally (race_
-        (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$ sinkTMChan masterChannel False)
+        (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$= addAuthorConduit jUser =$ sinkTMChan masterChannel False)
         (sourceTMChan dupedChan $= encodeConduit $$ sinkWSText)) $ atomically $ leaveSession currentUsr sess
 
 
@@ -99,7 +101,7 @@ joinSession user app sid = do
 leaveSession :: User -> TVar UserLocationSession -> STM ()
 leaveSession currentUsr session = do
   currSess <- readTVar session
-  writeTMChan (currSess^.sessionMasterChannel) (Exited $ userToJUser currentUsr)
+  writeTMChan (currSess^.sessionMasterChannel) (flip UserSessionEvent Exited $ userToJUser currentUsr)
   let newSess = deleteUserFromSession currentUsr currSess
   writeTVar session newSess
 

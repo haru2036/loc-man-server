@@ -6,4 +6,4 @@
 
 / HomeR GET POST
 /session/client WebSocketR GET 
-/session/ws/#Text    WebSocketSessionR GET 
+/api/session/ws/#Text    WebSocketSessionR GET 
