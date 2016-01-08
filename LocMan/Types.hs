@@ -23,10 +23,10 @@ data GeoLocation = GeoLocation
               { _latitude :: Double
               , _longitude :: Double
               , _altitude :: Double
-              , _error :: Meter
+              , _accuracy:: Meter
               }
 
-$(deriveJSON defaultOptions ''GeoLocation)
+$(deriveJSON defaultOptions { fieldLabelModifier = drop 1} ''GeoLocation)
 $(makeLenses ''GeoLocation)
 
 data JUser = JUser
@@ -34,16 +34,26 @@ data JUser = JUser
             , _name :: Text
             }
 
+userToJUser :: User -> JUser
+userToJUser usr = JUser (userIdent usr) (userIdent usr ) 
+
 $(deriveJSON defaultOptions{ fieldLabelModifier = drop 1} ''JUser)
 
-data SessionEvent = Joined JUser | Exited JUser | UpdateLocation GeoLocation
+data SessionEvent = Joined | Exited | UpdateLocation GeoLocation
 
-$(deriveJSON defaultOptions { fieldLabelModifier =drop 1} ''SessionEvent)
+data UserSessionEvent = UserSessionEvent { 
+                          author :: JUser
+                        , event :: SessionEvent
+                        }
+
+$(deriveJSON defaultOptions { fieldLabelModifier = drop 1} ''SessionEvent)
+
+$(deriveJSON defaultOptions { fieldLabelModifier = drop 0} ''UserSessionEvent)
 
 
 data UserLocationSession = UserLocationSession 
                            { _sessionUsers :: [User]
-                           , _sessionMasterChannel :: TMChan SessionEvent
+                           , _sessionMasterChannel :: TMChan UserSessionEvent
                            }
 
 $(makeLenses ''UserLocationSession)

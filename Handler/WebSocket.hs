@@ -10,22 +10,15 @@ import Import
 import Yesod.Core()
 import Yesod.WebSockets
 import qualified Data.Text.Lazy as TL
-import Control.Monad (forever)
-import Control.Monad.Trans.Reader
 import Control.Concurrent (threadDelay)
-import Data.Time
 import qualified Data.Map as M
-import Data.Map.Strict
-import Conduit
 import LocMan.Types
 import LocMan.Conduit
 import Control.Lens
 import Data.Maybe(fromJust)
-import Data.Void(Void)
-import Debug.Trace
-import Control.DeepSeq
 import Control.Concurrent.STM.TVar()
 import Data.Conduit.TMChan
+import qualified Data.List as L (delete)
 
 
 timeSource :: MonadIO m => Source m TL.Text
@@ -42,7 +35,7 @@ getWebSocketR = do
     defaultLayout $
         toWidget
             [julius|
-                var conn = new WebSocket("ws://mbp:3000/session/ws/1");
+                var conn = new WebSocket("ws://mbp:3000/api/session/ws/1");
                 conn.onopen = function() {
                     document.write("<p>open!</p>");
                     document.write("<button id=button>Send another message</button>")
@@ -50,7 +43,7 @@ getWebSocketR = do
                         var msg = prompt("Enter a message for the server");
                         conn.send(msg);
                     });
-                    conn.send('{"tag":"Joined","contents":{"uid":"hoge","name":"hoge"}}');
+                    conn.send('{"tag":"UpdateLocation","contents":{"accuracy":100,"latitude":100,"altitude":135,"longitude":100}}');
                 };
                 conn.onmessage = function(e) {
                     document.write("<p>" + e.data + "</p>");
@@ -61,17 +54,22 @@ receiveWebSockets :: LocationSessionId -> Handler ()
 receiveWebSockets ident = do
   maybeuser <- maybeAuth
   app <- getYesod
-  sess <- atomically $ joinSession (entityVal $ fromJust maybeuser) app ident
-  webSockets $ runSocket sess
+  let usr = entityVal $ fromJust maybeuser
+  sess <- atomically $ joinSession usr app ident
+  webSockets $ runSocket usr sess
 
-runSocket :: TVar UserLocationSession -> WebSocketsT Handler ()
-runSocket x = do
-  session <- atomically $ readTVar x
+runSocket :: User -> TVar UserLocationSession -> WebSocketsT Handler ()
+runSocket currentUsr sess = do
+  session <- atomically $ readTVar sess
+  let jUser = userToJUser currentUsr
   let masterChannel = session^.sessionMasterChannel
-  dupedChan <- atomically $ dupTMChan masterChannel
-  race_
-        (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$ sinkTMChan masterChannel False)
-        (sourceTMChan dupedChan $= encodeConduit$$ sinkWSText)
+  dupedChan <- atomically $ do
+    writeTMChan masterChannel $ flip UserSessionEvent Joined $ jUser
+    dupTMChan masterChannel
+  finally (race_
+        (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$= addAuthorConduit jUser =$ sinkTMChan masterChannel False)
+        (sourceTMChan dupedChan $= encodeConduit $$ sinkWSText)) $ atomically $ leaveSession currentUsr sess
+
 
 -- | get or create session if not exists
 retrieveSession :: Text -> AppStates -> STM (TVar UserLocationSession)
@@ -85,6 +83,9 @@ retrieveSession sid shared = do
 addCurrentUserSession :: User -> UserLocationSession -> UserLocationSession
 addCurrentUserSession currentUser session = session & sessionUsers .~ (currentUser : _sessionUsers session)
  
+deleteUserFromSession :: User -> UserLocationSession -> UserLocationSession
+deleteUserFromSession currentUser session = session & sessionUsers .~ (L.delete currentUser $ _sessionUsers session)
+
 joinSession :: User -> App -> LocationSessionId -> STM (TVar UserLocationSession)
 joinSession user app sid = do
      sharedStates <- readTVar $ appSharedStates app
@@ -95,4 +96,12 @@ joinSession user app sid = do
      let newState = M.insert sid userSessionTVar sharedStates 
      writeTVar (appSharedStates app) newState
      return userSessionTVar
+
+
+leaveSession :: User -> TVar UserLocationSession -> STM ()
+leaveSession currentUsr session = do
+  currSess <- readTVar session
+  writeTMChan (currSess^.sessionMasterChannel) (flip UserSessionEvent Exited $ userToJUser currentUsr)
+  let newSess = deleteUserFromSession currentUsr currSess
+  writeTVar session newSess
 
