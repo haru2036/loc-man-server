@@ -35,7 +35,7 @@ getWebSocketR = do
     defaultLayout $
         toWidget
             [julius|
-                var conn = new WebSocket("ws://mbp:3000/api/session/ws/1");
+                var conn = new WebSocket("ws://localhost:3000/api/session/ws/1");
                 conn.onopen = function() {
                     document.write("<p>open!</p>");
                     document.write("<button id=button>Send another message</button>")
@@ -68,7 +68,7 @@ runSocket currentUsr sess = do
     dupTMChan masterChannel
   finally (race_
         (sourceWS $$ toByteStringConduit =$= decodeConduit =$= errorReportConduit =$= addAuthorConduit jUser =$ sinkTMChan masterChannel False)
-        (sourceTMChan dupedChan $= encodeConduit $$ sinkWSText)) $ atomically $ leaveSession currentUsr sess
+        (sourceTMChan dupedChan $= dropWithUserConduit jUser =$= encodeConduit $$ sinkWSText)) $ atomically $ leaveSession currentUsr sess
 
 
 -- | get or create session if not exists

@@ -32,7 +32,7 @@ $(makeLenses ''GeoLocation)
 data JUser = JUser
             { _uid :: Text 
             , _name :: Text
-            }
+            } deriving (Eq)
 
 userToJUser :: User -> JUser
 userToJUser usr = JUser (userIdent usr) (userIdent usr ) 
