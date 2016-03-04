@@ -82,6 +82,7 @@ instance Yesod App where
     isAuthorized FaviconR _ = return Authorized
     isAuthorized RobotsR _ = return Authorized
     isAuthorized HomeR _ = return Authorized
+    isAuthorized WebSocketR _ = isAdmin
     -- Default to Authorized for now.
     isAuthorized _ _ = isAuthenticated 
 
@@ -123,13 +124,16 @@ isAuthenticated = do
 
 isAdmin :: HandlerT App IO AuthResult
 isAdmin = do
-  mu <- maybeAuthId
+  mu <- maybeAuth
   app <- getYesod
-  let admin = appAdminName $ appSettings app
+  let admin = appAdminName $ appSettings app 
   return $ case mu of
     Nothing -> AuthenticationRequired
-    Just admin -> Authorized
-    Just _ -> Unauthorized "You must be an admin"
+    Just usr
+      |  currentUserId usr == admin -> Authorized
+      |  otherwise -> Unauthorized "You must be an admin"
+        where
+          currentUserId = userIdent . entityVal 
 
 -- How to run database actions.
 instance YesodPersist App where
