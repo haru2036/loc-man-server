@@ -6,7 +6,29 @@ build-type:    Simple
 executable          loc-man-server
     hs-source-dirs: .
     main-is:        Main.hs
+    other-modules:  Model
+                    LocMan.Types
+                    LocMan.Conduit
     ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     extensions:     OverloadedStrings
     build-depends:  base   >= 4      && < 5
                   , scotty >= 0.10.0 && < 0.11
+                  , text
+                  , conduit
+                  , stm-conduit
+                  , stm-chans
+                  , lens
+                  , aeson
+                  , stm-lifted
+                  , stm
+                  , conduit-combinators
+                  , transformers
+                  , persistent
+                  , persistent-sqlite
+                  , persistent-template
+                  , websockets
+                  , wai-websockets
+                  , bytestring
+                  , containers
+                  , classy-prelude
+
