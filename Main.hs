@@ -13,23 +13,24 @@ import Language.Haskell.TH
 import System.FilePath
 import System.Directory
 import Locman.WebSockets
-import Control.Concurrent.STM.TVar(newTVar)
+import LocMan.Types
+import Control.Concurrent.STM.TVar(newTVar, TVar)
 import Control.Concurrent.STM(atomically)
 import Model
 import Data.Map(empty)
 
 main :: IO ()
 main = do 
+    appStatus <- atomically $ newTVar empty
     setCurrentDirectory $(location >>= stringE . takeDirectory . loc_filename)
     runApiary (run 3000) def $ do
-        [capture|/i::Int|] . webSockets $ servApp . get [key|i|]
-        root $ actionWithWebSockets (const $ servApp 0) (file "websockets.html" Nothing)
+        [capture|/i::Int|] . webSockets $ servApp appStatus . get [key|i|]
+        root $ actionWithWebSockets (const $ servApp appStatus 0) (file "websockets.html" Nothing)
 
-servApp :: Int -> PendingConnection -> IO ()
-servApp st pc = do
+servApp :: TVar AppStatus -> Int -> PendingConnection -> IO ()
+servApp appStatus st pc = do
     c <- acceptRequest pc
     let usr = User "hoge" Nothing
     sess <- atomically $ do
-      appStatus <- newTVar empty
       joinSession usr appStatus  "1"
     runSockets c usr sess 
