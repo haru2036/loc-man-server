@@ -1,13 +1,35 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE DataKinds #-}
 
-import Web.Scotty
+import Web.Apiary
+import Web.Apiary.WebSockets
+import Network.Wai.Handler.Warp
+import qualified Data.Text as T
+import Network.Routing.Dict(get)
+import Control.Concurrent
+import Language.Haskell.TH
+import System.FilePath
+import System.Directory
+import Locman.WebSockets
+import Control.Concurrent.STM.TVar(newTVar)
+import Control.Concurrent.STM(atomically)
 import Model
-import Locman.WebSocket
+import Data.Map(empty)
 
 main :: IO ()
-main = scotty 3000 $ do
-  get "/:word" $ do
-    beam <- param "word"
-    html $ mconcat ["<h1>Scotty, ", beam, " me up!</h1>"]
-  get "/ws/" $ do
-    runSocket $ User "hoge" "piyo"
+main = do 
+    setCurrentDirectory $(location >>= stringE . takeDirectory . loc_filename)
+    runApiary (run 3000) def $ do
+        [capture|/i::Int|] . webSockets $ servApp . get [key|i|]
+        root $ actionWithWebSockets (const $ servApp 0) (file "websockets.html" Nothing)
+
+servApp :: Int -> PendingConnection -> IO ()
+servApp st pc = do
+    c <- acceptRequest pc
+    let usr = User "hoge" Nothing
+    sess <- atomically $ do
+      appStatus <- newTVar empty
+      joinSession usr appStatus  "1"
+    runSockets c usr sess 

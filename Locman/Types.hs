@@ -3,13 +3,13 @@
 module LocMan.Types where
 
 import Model
-import Data.Map.Strict(Map)
 import Data.Text(Text)
 import qualified Data.Text.Lazy as TL
 import Control.Concurrent.STM.TMChan
 import Control.Concurrent.STM.TVar
 import Control.Lens
 import Data.Aeson.TH
+import Data.Map
 
 -- | This module has non-persistent data types.
 -- If the application stopped, data that has these data types will be deleted.
