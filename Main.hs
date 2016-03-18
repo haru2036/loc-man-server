@@ -5,6 +5,7 @@
 
 import Web.Apiary
 import Web.Apiary.WebSockets
+import Web.Apiary.Database.Persist
 import Network.Wai.Handler.Warp
 import qualified Data.Text as T
 import Network.Routing.Dict(get)
@@ -16,8 +17,9 @@ import Locman.WebSockets
 import LocMan.Types
 import Control.Concurrent.STM.TVar(newTVar, TVar)
 import Control.Concurrent.STM(atomically)
-import Model
 import Data.Map(empty)
+import Model
+
 
 main :: IO ()
 main = do 

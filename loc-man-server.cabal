@@ -15,6 +15,7 @@ executable          loc-man-server
                   , apiary
                   , warp
                   , apiary-websockets
+                  , apiary-persistent
                   , text
                   , conduit
                   , stm-conduit
