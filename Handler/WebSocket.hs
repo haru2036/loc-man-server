@@ -90,11 +90,9 @@ joinSession :: User -> App -> LocationSessionId -> STM (TVar UserLocationSession
 joinSession user app sid = do
      sharedStates <- readTVar $ appSharedStates app
      userSessionTVar <- retrieveSession sid $ sharedStates
-     userSession <- readTVar userSessionTVar
-     let newSession = addCurrentUserSession user userSession 
-     writeTVar userSessionTVar newSession
-     let newState = M.insert sid userSessionTVar sharedStates 
-     writeTVar (appSharedStates app) newState
+
+     writeTVar userSessionTVar =<< return . addCurrentUserSession user =<< readTVar userSessionTVar
+     writeTVar (appSharedStates app) $ M.insert sid userSessionTVar sharedStates 
      return userSessionTVar
 
 
