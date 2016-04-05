@@ -62,14 +62,12 @@ deleteUserFromSession currentUser session = session & sessionUsers .~ (L.delete 
 
 joinSession :: User -> TVar AppStatus -> LocationSessionId -> STM (TVar UserLocationSession)
 joinSession user apps sid = do
-     sharedStates <- readTVar apps
-     userSessionTVar <- retrieveSession sid $ sharedStates
-     userSession <- readTVar userSessionTVar
-     let newSession = addCurrentUserSession user userSession 
-     writeTVar userSessionTVar newSession
-     let newState = M.insert sid userSessionTVar sharedStates 
-     writeTVar apps newState
-     return userSessionTVar
+  sharedStates <- readTVar apps
+  userSessionTVar <- retrieveSession sid $ sharedStates
+
+  writeTVar userSessionTVar =<< return . addCurrentUserSession user =<< readTVar userSessionTVar
+  writeTVar apps $ M.insert sid userSessionTVar sharedStates 
+  return userSessionTVar
 
 
 leaveSession :: User -> TVar UserLocationSession -> STM ()
