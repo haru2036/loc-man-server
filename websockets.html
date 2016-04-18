@@ -32,7 +32,7 @@
     </head>
     <body>
     <script>
-        var conn = new WebSocket("ws://localhost:3000/1");
+        var conn = new WebSocket("ws://localhost:3000/websock/1");
         conn.onopen = function() {
             document.write("<p>open!</p>");
             document.write("<button id=button>Send another message</button>")

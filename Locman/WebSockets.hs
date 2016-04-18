@@ -8,7 +8,6 @@ module Locman.WebSockets
 import Model
 import Data.Text
 import Control.Exception.Base
-import qualified Network.WebSockets 
 import qualified Data.Map as M
 import LocMan.Types
 import LocMan.Conduit
