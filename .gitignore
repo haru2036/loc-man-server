@@ -1,7 +1,7 @@
 dist*
-static/tmp/
-static/combined/
-config/client_session_key.aes
+loc-man-server/static/tmp/
+loc-man-server/static/combined/
+loc-man-server/config/client_session_key.aes
 *.hi
 *.o
 *.sqlite3
@@ -20,4 +20,4 @@ default/
 .stack-work
 stack.yaml
 .ghci
-config/settings.yml
+loc-man-server/config/settings.yml

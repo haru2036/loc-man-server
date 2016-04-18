@@ -1,0 +1,43 @@
+name:                loc-man-lib-ws
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+homepage:            https://github.com/githubuser/loc-man-lib-ws#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Haruka Nakajima
+maintainer:          haru2036@gmail.com
+copyright:           2016 Author name here
+category:            Web
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     LocMan.Types
+                     , LocMan.WebSockets
+                     , LocMan.Conduit.WebSockets
+                     , LocMan.Conduit.Common
+  build-depends:       base >= 4.7 && < 5
+                     , websockets
+                     , text
+                     , containers
+                     , aeson
+                     , transformers
+                     , monad-control
+                     , lens
+                     , classy-prelude
+                     , bytestring
+                     , stm-lifted
+                     , stm
+                     , conduit-combinators
+                     , conduit
+                     , stm-conduit
+                     , stm-chans
+                     , async
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/loc-man-lib-ws
