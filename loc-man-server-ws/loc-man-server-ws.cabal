@@ -24,8 +24,10 @@ executable loc-man-server-ws
                      , bytestring 
                      , classy-prelude
                      , monad-control
+                     , monad-logger
                      , persistent
                      , persistent-sqlite
+                     , persistent-postgresql
                      , persistent-template
                      , stm
                      , containers
