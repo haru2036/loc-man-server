@@ -6,6 +6,7 @@ build-type:    Simple
 executable          loc-man-server
     hs-source-dirs: .
     main-is:        Main.hs
+    other-modules:  Handler.Users
     ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     extensions:     OverloadedStrings
     build-depends:  base   >= 4      && < 5

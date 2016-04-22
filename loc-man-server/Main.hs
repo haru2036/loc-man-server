@@ -9,8 +9,7 @@ import Web.Apiary.Session.ClientSession
 import Web.Apiary.Cookie
 import Web.Apiary.Database.Persist 
 import Web.Apiary.Logger
-import Database.Persist.Postgresql(withPostgresqlPool, runSqlPersistMPool, runMigration)
-import qualified Database.Persist.Sql as Sql
+import Database.Persist.Postgresql(withPostgresqlPool)
 import Network.Wai.Handler.Warp
 import qualified Data.Text as T
 import Network.Routing.Dict(get)
@@ -23,15 +22,22 @@ import LocMan.Model
 import Control.Concurrent.STM.TVar(newTVar, TVar)
 import Control.Concurrent.STM(atomically)
 import Data.Map(empty)
+import Handler.Users
 
 
-connStr = "host=iphoge dbname=test user=postgres password=hoge port=32768"
+connStr = "host=192.168.99.100 dbname=test user=postgres password=hogepero port=32768"
 
 sc :: ClientSessionConfig
 sc = def { csCookiePath = Just "/", csCookieSecure = False }
 
 ac ::AuthConfig
-ac = def { authUrl = "http://Asahi.local:3000" }
+ac = def { authSuccessPage = "/loggedin", authUrl = "http://localhost:3000", providers = [("hatena", hatena),
+                                                           ("yahoo", yahoo)]}
+hatena :: Provider
+hatena = Provider "http://www.hatena.ne.jp/openid/server"  Nothing []
+
+yahoo :: Provider
+yahoo = Provider "http://me.yahoo.com/" Nothing []
 
 main :: IO ()
 main = do 
@@ -43,7 +49,6 @@ main = do
 
         contentType "text/html"
 
-        bytes "your id: "
         appendBytes " \n<a href=\"/logout\">logout</a>"
       cookie [key|message|] (pOption pByteString) . action $ do
         contentType "text/html"
@@ -57,6 +62,8 @@ main = do
         appendBytes "</a></div>")
 
         deleteCookie "message"
+
+    [capture|/loggedin|] . method GET $ loggedIn
 
     [capture|/websock|] . method GET . action $ file "websockets.html" Nothing
     [capture|/logout|] . method GET . action $ do

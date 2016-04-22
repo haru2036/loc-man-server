@@ -17,6 +17,7 @@ import LocMan.Types
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 User
     ident Text
+    screenName Text
     password Text Maybe
     UniqueUser ident
     deriving Eq
@@ -32,4 +33,4 @@ instance ModelUser User where
   toJUser usr = JUser ident' ident'
     where
       ident' = userIdent usr
-  fromJUser _ = return $ User "stub" Nothing
+  fromJUser _ = return $ User "stub" "stub" Nothing
