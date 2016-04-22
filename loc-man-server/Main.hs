@@ -4,7 +4,6 @@
 {-# LANGUAGE DataKinds #-}
 
 import Web.Apiary
-import Web.Apiary.WebSockets
 import Web.Apiary.Authenticate
 import Web.Apiary.Session.ClientSession
 import Web.Apiary.Cookie
@@ -19,7 +18,6 @@ import Control.Concurrent
 import Language.Haskell.TH
 import System.FilePath
 import System.Directory
-import LocMan.WebSockets
 import LocMan.Types
 import LocMan.Model
 import Control.Concurrent.STM.TVar(newTVar, TVar)
@@ -32,11 +30,13 @@ connStr = "host=iphoge dbname=test user=postgres password=hoge port=32768"
 sc :: ClientSessionConfig
 sc = def { csCookiePath = Just "/", csCookieSecure = False }
 
+ac ::AuthConfig
+ac = def { authUrl = "http://Asahi.local:3000" }
+
 main :: IO ()
 main = do 
-  appStatus <- atomically $ newTVar empty
   setCurrentDirectory $(location >>= stringE . takeDirectory . loc_filename)
-  runApiaryWith (run 3000) (initClientSession pOpenId sc +> initAuth def +> initLogger def +> initPersistPool (withPostgresqlPool connStr 10) migrateAll) def $ do
+  runApiaryWith (run 3000) (initClientSession pOpenId sc +> initAuth ac +> initLogger def +> initPersistPool (withPostgresqlPool connStr 10) migrateAll) def $ do
     authHandler
     root . method GET $ do
       authorized . action $ do
@@ -44,7 +44,6 @@ main = do
         contentType "text/html"
 
         bytes "your id: "
-        appendShowing =<< param [key|auth|]
         appendBytes " \n<a href=\"/logout\">logout</a>"
       cookie [key|message|] (pOption pByteString) . action $ do
         contentType "text/html"
