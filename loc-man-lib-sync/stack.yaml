@@ -1,0 +1,8 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+- ../loc-man-lib-ws
+extra-deps:
+- stm-lifted-0.1.0.0
+resolver: lts-5.8
