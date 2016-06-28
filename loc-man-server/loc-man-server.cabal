@@ -1,47 +1,146 @@
-name:          loc-man-server
-version:       0.0.0
-cabal-version: >= 1.8
-build-type:    Simple
+name:              loc-man-server
+version:           0.0.0
+cabal-version:     >= 1.8
+build-type:        Simple
 
-executable          loc-man-server
-    hs-source-dirs: .
-    main-is:        Main.hs
-    other-modules:  Handler.Users
-    ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
-    extensions:     OverloadedStrings
-    build-depends:  base   >= 4      && < 5
-                  , apiary
-                  , warp
-                  , apiary-websockets
-                  , apiary-persistent
-                  , apiary-authenticate
-                  , apiary-clientsession
-                  , apiary-logger
-                  , apiary-cookie
-                  , text
-                  , conduit
-                  , stm-conduit
-                  , stm-chans
-                  , lens
-                  , aeson
-                  , stm-lifted
-                  , stm
-                  , conduit-combinators
-                  , transformers
-                  , persistent
-                  , persistent-sqlite
-                  , persistent-template
-                  , persistent-postgresql
-                  , websockets
-                  , bytestring
-                  , containers
-                  , classy-prelude
-                  , async
-                  , monad-control
-                  , web-routing
-                  , template-haskell
-                  , filepath
-                  , directory
-                  , monad-logger
-                  , loc-man-lib-sync
-                  , loc-man-lib-ws
+Flag dev
+    Description:   Turn on development settings, like auto-reload templates.
+    Default:       False
+
+Flag library-only
+    Description:   Build for use with "yesod devel"
+    Default:       False
+
+library
+    hs-source-dirs: ., app
+    exposed-modules: Application
+                     Foundation
+                     Import
+                     Import.NoFoundation
+                     Model
+                     Settings
+                     Settings.StaticFiles
+                     Handler.Common
+                     Handler.Home
+                     Handler.WebSocket
+                     LocMan.Types
+                     LocMan.Conduit
+
+    if flag(dev) || flag(library-only)
+        cpp-options:   -DDEVELOPMENT
+        ghc-options:   -Wall -fwarn-tabs -O0
+    else
+        ghc-options:   -Wall -fwarn-tabs -O2
+
+    extensions: TemplateHaskell
+                QuasiQuotes
+                OverloadedStrings
+                NoImplicitPrelude
+                CPP
+                MultiParamTypeClasses
+                TypeFamilies
+                GADTs
+                GeneralizedNewtypeDeriving
+                FlexibleContexts
+                FlexibleInstances
+                EmptyDataDecls
+                NoMonomorphismRestriction
+                DeriveDataTypeable
+                ViewPatterns
+                TupleSections
+                RecordWildCards
+
+    build-depends: base                          >= 4          && < 5
+                 , yesod                         
+                 , yesod-core                    
+                 , yesod-auth                    
+                 , yesod-static                  
+                 , yesod-form                    
+                 , classy-prelude                
+                 , classy-prelude-conduit        
+                 , classy-prelude-yesod          
+                 , bytestring                    
+                 , text                          
+                 , persistent                    
+                 , persistent-postgresql         
+                 , persistent-template           
+                 , template-haskell
+                 , shakespeare                   
+                 , hjsmin                        
+                 , monad-control                 
+                 , wai-extra                     
+                 , yaml                          
+                 , http-conduit                  
+                 , directory                     
+                 , warp                          
+                 , data-default
+                 , aeson                         
+                 , conduit                       
+                 , monad-logger                  
+                 , fast-logger                   
+                 , wai-logger                    
+                 , transformers
+                 , file-embed
+                 , safe
+                 , unordered-containers
+                 , containers
+                 , vector
+                 , time
+                 , yesod-websockets
+                 , stm-lifted
+                 , stm
+                 , conduit-combinators
+                 , lens
+                 , deepseq
+                 , stm-conduit
+                 , stm-chans
+                 , aeson
+
+executable         loc-man-server
+    if flag(library-only)
+        Buildable: False
+
+    main-is:           main.hs
+    hs-source-dirs:    app
+    build-depends:     base, loc-man-server
+
+    ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
+
+test-suite test
+    type:              exitcode-stdio-1.0
+    main-is:           Spec.hs
+    hs-source-dirs:    test
+    ghc-options:       -Wall
+
+    extensions: TemplateHaskell
+                QuasiQuotes
+                OverloadedStrings
+                NoImplicitPrelude
+                CPP
+                MultiParamTypeClasses
+                TypeFamilies
+                GADTs
+                GeneralizedNewtypeDeriving
+                FlexibleContexts
+                FlexibleInstances
+                EmptyDataDecls
+                NoMonomorphismRestriction
+                DeriveDataTypeable
+                ViewPatterns
+                TupleSections
+
+    build-depends: base
+                 , loc-man-server
+                 , yesod-test 
+                 , yesod-core
+                 , yesod
+                 , persistent
+                 , persistent-postgresql
+                 , resourcet
+                 , monad-logger
+                 , shakespeare
+                 , transformers
+                 , hspec >= 2.0.0
+                 , classy-prelude
+                 , classy-prelude-yesod
+                 , stm
