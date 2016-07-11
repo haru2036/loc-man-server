@@ -18,6 +18,5 @@ cabal.sandbox.config
 default/
 .dir-locals.el
 .stack-work
-stack.yaml
 .ghci
 config/settings.yml
